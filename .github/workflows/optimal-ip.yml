@@ -1,0 +1,41 @@
+name: 优选 Cloudflare 国内 IP
+
+# 定时把域名解析到「对中国大陆最快的 Cloudflare 入口 IP」，无需 ICP 备案。
+# 未配置任何 DNS 密钥时脚本会直接跳过（绿色通过），可放心先合并、回头再填。
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"   # 每 30 分钟跑一次（GitHub 定时任务有几分钟抖动属正常）
+  workflow_dispatch: {}        # 也支持在 Actions 页面手动触发
+
+# 同一时间只跑一个，避免并发改 DNS 打架
+concurrency:
+  group: optimal-ip
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: 优选并更新 DNS
+        env:
+          # —— Cloudflare（配了这三个就走 Cloudflare）——
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+          CF_DNS_NAME: ${{ secrets.CF_DNS_NAME }}
+          # —— DNSPod（配了这三个就走 DNSPod）——
+          DNSPOD_TOKEN: ${{ secrets.DNSPOD_TOKEN }}
+          DNSPOD_DOMAIN: ${{ secrets.DNSPOD_DOMAIN }}
+          DNSPOD_SUBDOMAIN: ${{ secrets.DNSPOD_SUBDOMAIN }}
+          # —— 可选：写入几条 A 记录做轮询，默认 1 ——
+          IP_COUNT: ${{ vars.IP_COUNT }}
+        run: python3 scripts/update_optimal_ip.py
