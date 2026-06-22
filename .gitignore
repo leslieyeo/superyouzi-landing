@@ -3,3 +3,6 @@
 # Python
 __pycache__/
 *.pyc
+
+# Cloudflare wrangler 本地缓存
+.wrangler/
